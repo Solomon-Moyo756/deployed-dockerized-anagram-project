@@ -22,7 +22,7 @@ services:
   frontend:
     image: solomon756/anagram-frontend:latest
     ports:
-      - "80:80"
+      - "3000:80"
     depends_on:
       - backend
     restart: unless-stopped
