@@ -1,13 +1,16 @@
 # Anagram
 
 Anagram is a full-stack application for browsing a dictionary, finding words
-that are anagrams of a given word, and managing the word list. The backend
-loads and normalizes dictionary words into PostgreSQL and provides the API;
-this Angular frontend provides the interface for searching and managing them.
+that are anagrams of a given word, and managing the word list. The Spring Boot
+backend loads and normalizes dictionary words into PostgreSQL and provides the
+API; the Angular frontend provides the interface for searching and managing
+them.
 
-The frontend is in this repository. The Spring Boot backend is maintained
-separately in
-[Solomon-Moyo756/anagram](https://github.com/Solomon-Moyo756/anagram).
+This repository contains the Docker Compose configuration for running the
+published frontend and backend images with PostgreSQL. The application source
+code is maintained separately in the
+[backend repository](https://github.com/Solomon-Moyo756/anagram) and the
+[frontend repository](https://github.com/Solomon-Moyo756/anagram-frontend).
 
 ## Features
 
@@ -48,23 +51,74 @@ results so subsequent requests can return up-to-date data.
 
 ## Requirements
 
-For local development:
+To run the application images with Docker Compose:
 
-- Node.js 18.10 or later in the Node 18 line
-- npm 9 or later
-- A running backend API and PostgreSQL database
-
-For the containerized setup:
-
-- Docker with the Compose plugin
+- Docker Engine with the Compose plugin
 - A strong database password configured as `DB_PASSWORD`
 
+To develop the applications from source, also see the requirements in each
+application repository. The frontend currently uses Node.js 18.10 or later in
+the Node 18 line and npm 9 or later; the backend requires Java 17.
+
 Angular 15 is no longer supported upstream and does not receive security fixes.
-This project uses it for compatibility with the existing application.
+The frontend uses it for compatibility with the existing application.
 
-## Run locally
+## Run locally with Docker Compose
 
-Install the frontend dependencies and start the development server:
+The simplest way to run the complete application is to use the prebuilt images
+defined in this repository's [`docker-compose.yaml`](./docker-compose.yaml).
+You do not need to clone the backend or frontend repositories or install Java,
+Node.js, or npm for this option.
+
+Set `DB_PASSWORD` in your shell environment or in a local `.env` file beside
+`docker-compose.yaml`. Keep the password private and do not commit it. Then run
+these commands from this repository:
+
+```bash
+docker compose up -d
+```
+
+Compose starts the frontend and backend images with PostgreSQL. If an image is
+not already available locally, Compose pulls it from the registry named by its
+image reference. This Compose file uses prebuilt images; it does not build the
+applications from source. When the services are ready, open
+[http://localhost](http://localhost). The frontend is served on port 80, and
+the backend API is exposed on port 8080.
+
+To fetch the latest published images before starting, run
+`docker compose pull` first. If you built images locally but have not published
+them, make sure their tags match those in `docker-compose.yaml` and skip the
+pull command.
+
+To check service logs or stop the application:
+
+```bash
+docker compose logs -f
+docker compose down
+```
+
+`docker compose down` leaves the PostgreSQL named volume intact. To also delete
+the database data, run `docker compose down --volumes`.
+
+## Develop the applications from source
+
+To change or run the Angular and Spring Boot applications from their source
+code, clone the
+[backend repository](https://github.com/Solomon-Moyo756/anagram) and the
+[frontend repository](https://github.com/Solomon-Moyo756/anagram-frontend)
+separately. The backend also needs PostgreSQL. Its
+[`docker-compose.yml`](https://github.com/Solomon-Moyo756/anagram/blob/master/docker-compose.yml)
+starts the database service; run that Compose file from the backend repository.
+
+Start the backend from its repository with the included Maven wrapper:
+
+```bash
+./mvnw spring-boot:run
+```
+
+On Windows, use `.\mvnw.cmd spring-boot:run` instead. Once the API is running
+on port 8080, install the frontend dependencies and start its development
+server from the frontend repository:
 
 ```bash
 npm ci
@@ -72,18 +126,10 @@ npm start
 ```
 
 Open [http://localhost:4200](http://localhost:4200). The Angular development
-server proxies `/anagrams` requests to `http://localhost:8080` using
-[`proxy.conf.json`](./proxy.conf.json). Start the Spring Boot backend first;
-its API must be reachable at that address.
-
-To create a production build:
-
-```bash
-npm run build
-```
-
-The generated files are written to `dist/anagram-frontend`. The frontend
-currently has no `test` script configured in `package.json`.
+server proxies `/anagrams` requests to the backend at `http://localhost:8080`.
+For source-specific setup and build details, refer to the READMEs in the
+[backend](https://github.com/Solomon-Moyo756/anagram) and
+[frontend](https://github.com/Solomon-Moyo756/anagram-frontend) repositories.
 
 ## API
 
@@ -102,52 +148,10 @@ includes `data` and `executionTimeMs`. Adding or deleting a word changes the
 database and therefore can change later word-list, statistics, and anagram
 results.
 
-## Docker
-
-The frontend image is built from the [`Dockerfile`](./Dockerfile). It compiles
-the Angular application and serves the result with Nginx. The Nginx
-configuration serves the Angular routes and forwards `/anagrams` requests to
-the Compose service named `backend` on port 8080.
-
-To build the image locally from this repository:
-
-```bash
-docker build -t solomon756/anagram-frontend:latest .
-```
-
-The backend repository contains the Compose setup for running the frontend,
-backend, and PostgreSQL together. From that repository, configure `DB_PASSWORD`
-in the environment (or its `.env` file) and run:
-
-```bash
-docker compose up --build -d
-```
-
-The Compose setup uses the following images:
-
-- `solomon756/anagram-frontend:latest`
-- `solomon756/anagram-backend:latest`
-- `postgres:18`
-
-When the frontend image is not already available to Docker on the host, build
-it locally or publish it to Docker Hub before starting Compose. Once running,
-the frontend is available at [http://localhost](http://localhost); the API is
-also exposed on port 8080 by the Compose configuration.
-
-Useful Compose commands (run from the backend repository) include:
-
-```bash
-docker compose logs -f
-docker compose down
-```
-
-`docker compose down` leaves the PostgreSQL named volume intact. Do not put a
-real database password in a committed file.
-
 ## Repository notes
 
-This repository contains the Angular frontend and its Docker build files. The
-backend repository contains the Spring Boot application, dictionary input,
-Liquibase change sets, and backend Docker Compose configuration. Refer to the
-[backend repository](https://github.com/Solomon-Moyo756/anagram) for its
-backend-specific setup and implementation details.
+This repository contains the Compose configuration for the frontend, backend,
+and database services. The application source, build files, and development
+instructions are in the separate
+[frontend](https://github.com/Solomon-Moyo756/anagram-frontend) and
+[backend](https://github.com/Solomon-Moyo756/anagram) repositories.
